@@ -5,6 +5,8 @@ VisualStudioVersion = 17.9.34607.119
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tunguska", "Tunguska\Tunguska.vcxproj", "{0B339046-BBAD-44EC-8D82-A8E115C51BE2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bullet_converter", "data_pipeline\bullet_converter.vcxproj", "{31E17F16-F1E9-4FD5-B62E-69ED81D00414}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{0B339046-BBAD-44EC-8D82-A8E115C51BE2}.Release|x64.Build.0 = Release|x64
 		{0B339046-BBAD-44EC-8D82-A8E115C51BE2}.Release|x86.ActiveCfg = Release|Win32
 		{0B339046-BBAD-44EC-8D82-A8E115C51BE2}.Release|x86.Build.0 = Release|Win32
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Debug|x64.ActiveCfg = Debug|x64
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Debug|x64.Build.0 = Debug|x64
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Debug|x86.ActiveCfg = Debug|Win32
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Debug|x86.Build.0 = Debug|Win32
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Release|x64.ActiveCfg = Release|x64
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Release|x64.Build.0 = Release|x64
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Release|x86.ActiveCfg = Release|Win32
+		{31E17F16-F1E9-4FD5-B62E-69ED81D00414}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

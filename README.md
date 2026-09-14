@@ -40,3 +40,17 @@ Special thanks go to the **Chess Programming Wiki** (`https://www.chessprogrammi
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE.md` file for details.
+
+## Converting Bullet training data
+
+Build the `bullet_converter` project in `Tunguska.sln`, then run:
+
+```powershell
+bin\x64\Release\bullet_converter.exe bullet-to-tunguska `
+  data\bullet\UHO.pdist.iter-1.bullet.bin\UHO.pdist.iter-1.bullet.bin `
+  data\train\UHO.pdist.iter-1 --target-size-gib 5
+```
+
+The converter validates and streams 32-byte Bullet records into balanced Tunguska
+chunks without loading the dataset into memory. It does not shuffle the records;
+include the generated `*_chunk_*.bin` files in the existing mix-and-split step.
