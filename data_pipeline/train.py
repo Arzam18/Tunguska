@@ -360,13 +360,13 @@ def gen_all_weights():
 
 
 if __name__ == "__main__":
-    chunk_files = glob.glob("../data/train/mixed_train_UHO_chunk*.bin")
+    chunk_files = glob.glob("../data/train/mixed_train_UHO_iter_3_chunk*.bin")
     val_file = chunk_files[0]
     train_files = chunk_files[1:]
     checkpoint_folder = "../checkpoints"
 
     if len(chunk_files) > 0:
         # Tweak batch size if desired. 16384 or 32768 run blazingly fast with the C++ loader.
-        train(train_files, val_file, checkpoint_folder, epochs=50, batch_size=16384, lr=1e-3, resume_from="../checkpoints/nnue_epoch_30_COMPLETE.pt")
+        train(train_files, val_file, checkpoint_folder, epochs=50, batch_size=16384, lr=1e-3, resume_from="../checkpoints/nnue_epoch_34_COMPLETE.pt")
     else:
         print(f"No chunk files found!")

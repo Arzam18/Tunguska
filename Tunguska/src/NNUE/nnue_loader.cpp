@@ -10,7 +10,7 @@
 // 1. NNUENetwork (Static Weights)
 // =========================================================
 
-#include "NNUE/nnue_weights_1024_e30.h"
+#include "NNUE/new_uho_34.h"
 // All declared and loaded inside the header
 /*
 int16_t NNUENetwork::accumulator_weight[INPUT_SIZE][HL_SIZE];

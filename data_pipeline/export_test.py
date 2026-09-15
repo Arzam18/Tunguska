@@ -390,12 +390,12 @@ if __name__ == "__main__":
     # for p, b in binpacks:
     #     convert_binpack_plain(p, b)
 
-    bin_files = glob("../data/train/UHO.pdist*.bin")
+    bin_files = glob("../data/train/UHO.pdist.iter-3*.bin")
 
     print(f"Mixing {len(bin_files)}...")
 
     mix_and_split_bins(
         bin_files,
-        "../data/train/mixed_train_UHO",
+        "../data/train/mixed_train_UHO_iter_3",
         7
     )
