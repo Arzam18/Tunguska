@@ -63,6 +63,10 @@ jobs:
           CXX="$ANDROID_CXX"
           mkdir -p dist
 
+          echo "Checking NDK Dotprod feature macro..."
+          printf '\n' | "$CXX" -march=armv8.2-a+dotprod -dM -E -x c++ - \
+            | grep -E '^#define __ARM_FEATURE_DOTPROD([[:space:]]|$)'
+
           mapfile -t ENGINE_SOURCES < <(
             find Tunguska/src/Engine Tunguska/src/NNUE -type f -name '*.cpp' -print | sort
           )
@@ -117,11 +121,22 @@ jobs:
           done
 
           OBJDUMP="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objdump"
-          if ! "$OBJDUMP" -d dist/tunguska-android-arm64-dotprod | grep -Eiq '\b(sdot|udot)\b'; then
-            echo "ERROR: Dotprod binary does not contain SDOT/UDOT instructions"
+          DOTPROD_BIN="dist/tunguska-android-arm64-dotprod"
+          DOTPROD_DISASM="dist/tunguska-android-arm64-dotprod.disasm.txt"
+
+          # Tell LLVM's disassembler that this AArch64 binary may contain the
+          # ARMv8.2 Dotprod extension, then preserve the disassembly as a log.
+          "$OBJDUMP" --mattr=+dotprod -d "$DOTPROD_BIN" > "$DOTPROD_DISASM"
+
+          if ! grep -Eiq '(^|[[:space:]])(sdot|udot)([[:space:]]|$)' "$DOTPROD_DISASM"; then
+            echo "ERROR: No SDOT/UDOT instruction found in the Dotprod engine."
+            echo "Disassembly preview:"
+            sed -n '1,100p' "$DOTPROD_DISASM"
             exit 1
           fi
-          echo "Verified explicit Dotprod instruction in the Dotprod binary."
+
+          echo "Verified Dotprod instructions in the engine:"
+          grep -Ei '(^|[[:space:]])(sdot|udot)([[:space:]]|$)' "$DOTPROD_DISASM" | head -n 20 || true
 
       - name: Upload Android ARM64 engines
         uses: actions/upload-artifact@v4
