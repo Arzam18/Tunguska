@@ -1,0 +1,131 @@
+name: Build Tunguska for Android ARM64 NEON + Dotprod
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Android ARM64 NEON + Dotprod
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Android NDK r27c
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION="27.2.12479018"
+          NDK_DIR="$RUNNER_TEMP/android-ndk-r27c"
+          NDK_ZIP="$RUNNER_TEMP/android-ndk-r27c.zip"
+          curl --fail --location --retry 3 --retry-delay 2 \
+            "https://dl.google.com/android/repository/android-ndk-r27c-linux.zip" \
+            --output "$NDK_ZIP"
+          unzip -q "$NDK_ZIP" -d "$RUNNER_TEMP"
+          rm -f "$NDK_ZIP"
+          TOOLCHAIN="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          test -x "$TOOLCHAIN/aarch64-linux-android24-clang++"
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_VERSION=$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_CXX=$TOOLCHAIN/aarch64-linux-android24-clang++" >> "$GITHUB_ENV"
+          "$TOOLCHAIN/aarch64-linux-android24-clang++" --version
+
+      - name: Verify required engine and network files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "Tunguska/src/Main.cpp"
+            "Tunguska/src/NNUE/nnue_loader.cpp"
+            "Tunguska/includes/NNUE/new_uho_34.h"
+            "Tunguska/includes/Engine/defs.h"
+            "spsa/engine/parameters.h"
+            "spsa/engine/parameters.def"
+          )
+          for file in "${required[@]}"; do
+            if [[ ! -s "$file" ]]; then
+              echo "ERROR: Required source file is missing: $file"
+              exit 1
+            fi
+          done
+          echo "Embedded NNUE header:"
+          ls -lh Tunguska/includes/NNUE/new_uho_34.h
+
+      - name: Build NEON and Dotprod engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          CXX="$ANDROID_CXX"
+          mkdir -p dist
+
+          mapfile -t ENGINE_SOURCES < <(
+            find Tunguska/src/Engine Tunguska/src/NNUE -type f -name '*.cpp' -print | sort
+          )
+          ENGINE_SOURCES+=("Tunguska/src/Main.cpp")
+
+          if [[ "${#ENGINE_SOURCES[@]}" -ne 17 ]]; then
+            echo "Unexpected engine source count: ${#ENGINE_SOURCES[@]}"
+            printf '%s\n' "${ENGINE_SOURCES[@]}"
+            exit 1
+          fi
+
+          common_flags=(
+            -std=c++17
+            -O3
+            -DNDEBUG
+            -fPIE
+            -pthread
+            -ffunction-sections
+            -fdata-sections
+            -Wall
+            -Wextra
+            -I"$GITHUB_WORKSPACE/Tunguska/includes"
+          )
+          link_flags=(-pthread -static-libstdc++ -Wl,--gc-sections -pie)
+
+          echo "Building baseline ARM64 NEON..."
+          "$CXX" "${common_flags[@]}" \
+            -march=armv8-a+simd -mtune=cortex-a76 \
+            "${ENGINE_SOURCES[@]}" "${link_flags[@]}" \
+            -o dist/tunguska-android-arm64-neon
+
+          echo "Building ARM64 Dotprod..."
+          "$CXX" "${common_flags[@]}" \
+            -march=armv8.2-a+dotprod -mtune=cortex-a76 \
+            "${ENGINE_SOURCES[@]}" "${link_flags[@]}" \
+            -o dist/tunguska-android-arm64-dotprod
+
+      - name: Verify binaries and SIMD instructions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for BIN in dist/tunguska-android-arm64-neon dist/tunguska-android-arm64-dotprod; do
+            test -s "$BIN"
+            echo "===== $BIN ====="
+            file "$BIN"
+            readelf -h "$BIN" | grep -E 'Class:|Machine:|Type:'
+            readelf -h "$BIN" | grep -q 'AArch64'
+            if readelf -d "$BIN" | grep -q 'libc++_shared.so'; then
+              echo "ERROR: Unexpected libc++_shared.so dependency"
+              exit 1
+            fi
+          done
+
+          OBJDUMP="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objdump"
+          if ! "$OBJDUMP" -d dist/tunguska-android-arm64-dotprod | grep -Eiq '\b(sdot|udot)\b'; then
+            echo "ERROR: Dotprod binary does not contain SDOT/UDOT instructions"
+            exit 1
+          fi
+          echo "Verified explicit Dotprod instruction in the Dotprod binary."
+
+      - name: Upload Android ARM64 engines
+        uses: actions/upload-artifact@v4
+        with:
+          name: tunguska-android-arm64-neon-dotprod
+          path: dist/tunguska-android-arm64-*
+          if-no-files-found: error
