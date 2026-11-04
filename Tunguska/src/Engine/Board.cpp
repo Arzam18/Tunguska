@@ -5,6 +5,7 @@
 #include "Engine/MoveGen.h"
 #include "Engine/Evaluation.h"
 #include <stdlib.h>
+#include <cstring>
 #include <iostream>
 
 int Board::KS_CASTLE_ATTACK[2][2] = {{F1, G1}, {F8, G8}};
