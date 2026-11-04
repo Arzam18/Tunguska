@@ -136,6 +136,19 @@ void updateDynamic(const int16_t* parent, int16_t* child, const int* removed, in
 #endif
 }
 
+#if defined(__ARM_FEATURE_DOTPROD) && (defined(__ARM_NEON) || defined(__ARM_NEON__))
+// Keep the Dotprod instruction explicit. This avoids depending on whether a
+// particular compiler version lowers the ACLE intrinsic during optimization.
+static inline int32x4_t dotprodAccumulate(int32x4_t accumulator,
+                                          int8x16_t lhs,
+                                          int8x16_t rhs) {
+    __asm__ volatile("sdot %0.4s, %1.16b, %2.16b"
+                     : "+w"(accumulator)
+                     : "w"(lhs), "w"(rhs));
+    return accumulator;
+}
+#endif
+
 void updatePerspective(const int16_t* parent, int16_t* child, const int* removed, int removedCount,
                        const int* added, int addedCount) {
     if (removedCount == 1 && addedCount == 1) {
@@ -260,10 +273,10 @@ int NNUEState::evaluate(Side stm) {
         const int8x16_t wtHigh = vcombine_s8(vmovn_s16(vshrq_n_s16(wt0, 8)),
                                              vmovn_s16(vshrq_n_s16(wt1, 8)));
 
-        dotLow = vdotq_s32(dotLow, au, wuLow);
-        dotLow = vdotq_s32(dotLow, at, wtLow);
-        dotHigh = vdotq_s32(dotHigh, au, wuHigh);
-        dotHigh = vdotq_s32(dotHigh, at, wtHigh);
+        dotLow = dotprodAccumulate(dotLow, au, wuLow);
+        dotLow = dotprodAccumulate(dotLow, at, wtLow);
+        dotHigh = dotprodAccumulate(dotHigh, au, wuHigh);
+        dotHigh = dotprodAccumulate(dotHigh, at, wtHigh);
 
         sumCenteredActivations += vaddlvq_s16(vsubq_s16(us0, offset16));
         sumCenteredActivations += vaddlvq_s16(vsubq_s16(us1, offset16));
